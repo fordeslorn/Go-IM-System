@@ -1,0 +1,54 @@
+name: Auto Release
+
+on:
+  workflow_dispatch:  
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Get tag info
+        id: tag_info
+        run: |
+          # 获取标签名
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          # 获取标签信息（如果是 annotated tag）
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' $TAG_NAME || echo "Release $TAG_NAME")
+          echo "tag_message=$TAG_MESSAGE" >> $GITHUB_OUTPUT
+          
+          # 格式化 release 描述：v** : xxx
+          RELEASE_BODY="$TAG_NAME : $TAG_MESSAGE"
+          echo "release_body=$RELEASE_BODY" >> $GITHUB_OUTPUT
+          
+      - name: Create source archive
+        run: |
+          # 创建源码压缩包
+          mkdir -p dist
+          
+          # 创建 zip 格式（Windows）
+          zip -r dist/source-code.zip . -x "*.git*" "dist/*"
+          
+          # 创建 tar.gz 格式（Linux/Mac）
+          tar --exclude='.git' --exclude='dist' -czf dist/source-code.tar.gz .
+          
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.tag_info.outputs.tag_name }}  # Release 名字就是标签名
+          body: |
+            ${{ steps.tag_info.outputs.release_body }}
+          files: |
+            dist/source-code.zip
+            dist/source-code.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
