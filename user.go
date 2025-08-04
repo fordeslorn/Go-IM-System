@@ -89,6 +89,29 @@ func (u *User) DoMessage(msg string) {
 			u.SendMsg("\033[36mYou have renamed yourself to:\033[35m" + newName + "\033[0m\n")
 		}
 
+	} else if len(msg) > 6 && msg[:5] == "tell|" {
+		// message format: tell|Jack|msg
+		remoteName := strings.Split(msg, "|")[1]
+		if remoteName == "" {
+			u.SendMsg("\033[31mMessage format is incorrect. Please send private message like:\033[32m\"tell|Jack|hello\"\033[0m\n")
+			return
+		}
+
+		// get opposite side's *User
+		remoteUser, ok := u.server.OnlineUserMap[remoteName]
+		if !ok {
+			u.SendMsg("\033[33mThe user doesn't exists.\033[0m\n")
+			return
+		}
+
+		// get message and send to other
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			u.SendMsg("\033[33mNo message content, please send again.\033[0m\n")
+			return
+		}
+		remoteUser.SendMsg("\033[35m" + u.Name + "\033[0m" + "\033[3m told you:" + content + "\033[0m")
+
 	} else {
 		u.server.BroadCast(u, msg)
 	}
