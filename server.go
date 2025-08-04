@@ -52,15 +52,9 @@ func (s *Server) Handler(conn net.Conn) {
 	// Handle the connection
 	fmt.Printf("\033[32mClient connection established successfully from:\033[0m [%s]%s\n", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
 
-	user := NewUser(conn)
+	user := NewUser(conn, s)
 
-	// Add the user to the online user map
-	s.maplock.Lock()
-	s.OnlineUserMap[user.Name] = user
-	s.maplock.Unlock()
-
-	// Broadcast that the user has come online
-	s.BroadCast(user, "\033[32mhas come online\033[0m")
+	user.Online() 
 
 	// Accept messages from the user
 	go func() {
@@ -68,7 +62,7 @@ func (s *Server) Handler(conn net.Conn) {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				s.BroadCast(user, "\033[36mhas gone offline\033[0m")
+				user.Offline()
 				fmt.Printf("[%s]%s \033[34mhas disconnected\033[0m\n", conn.RemoteAddr().Network(), user.Name)
 				return
 			}
@@ -81,8 +75,8 @@ func (s *Server) Handler(conn net.Conn) {
 			// get the message
 			msg := string(buf[:n-1]) // Exclude the '\n' character
 
-			// Broadcast the message
-			s.BroadCast(user, msg) 
+			// User handle message
+			user.DoMessage(msg)
 		}
 	}()
 
