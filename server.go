@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -56,6 +57,9 @@ func (s *Server) Handler(conn net.Conn) {
 
 	user.Online()
 
+	// Notify the user that they are online
+	isLive := make(chan bool)
+
 	// Accept messages from the user
 	go func() {
 		buf := make([]byte, 4096)
@@ -63,7 +67,6 @@ func (s *Server) Handler(conn net.Conn) {
 			n, err := conn.Read(buf)
 			if n == 0 {
 				user.Offline()
-				fmt.Printf("[(%s)%s]\033[35m%s :\033[34mhas disconnected\033[0m\n", conn.RemoteAddr().Network(), user.Addr, user.Name)
 				return
 			}
 
@@ -77,11 +80,28 @@ func (s *Server) Handler(conn net.Conn) {
 
 			// User handle message
 			user.DoMessage(msg)
+
+			// any message received, reset the isLive channel
+			isLive <- true
 		}
 	}()
 
 	// Block the handler
-	select {}
+	for {
+		select {
+		case <-isLive:
+			// User is active, reset the timer
+		case <-time.After(30 * time.Minute):
+			// timeout, close the connection
+			user.SendMsg("\033[33mYou have been inactive for too long, disconnecting...\033[0m\n")
+
+			close(user.C) // Close the user's message channel
+			conn.Close()  // Close the connection
+			fmt.Printf("[(%s)%s]\033[35m%s:\033[34mhas been disconnected due to inactivity\033[0m\n", conn.RemoteAddr().Network(), user.Addr, user.Name)
+
+			return
+		}
+	}
 }
 
 // Start the server
