@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"io"
 )
 
 type Server struct {
@@ -59,7 +60,31 @@ func (s *Server) Handler(conn net.Conn) {
 	s.maplock.Unlock()
 
 	// Broadcast that the user has come online
-	s.BroadCast(user, "has come online")
+	s.BroadCast(user, "\033[32mhas come online\033[0m")
+
+	// Accept messages from the user
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				s.BroadCast(user, "\033[36mhas gone offline\033[0m")
+				fmt.Printf("[%s]%s \033[34mhas disconnected\033[0m\n", conn.RemoteAddr().Network(), user.Name)
+				return
+			}
+
+			if err != nil && err != io.EOF {
+				fmt.Println("conn.Read error:", err)
+				return
+			}
+
+			// get the message
+			msg := string(buf[:n-1]) // Exclude the '\n' character
+
+			// Broadcast the message
+			s.BroadCast(user, msg) 
+		}
+	}()
 
 	// Block the handler
 	select {}
