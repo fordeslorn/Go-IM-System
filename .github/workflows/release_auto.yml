@@ -20,8 +20,14 @@ jobs:
           TAG_NAME=${GITHUB_REF#refs/tags/}
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           
-          # 获取标签信息（如果是 annotated tag）
-          TAG_MESSAGE=$(git tag -l --format='%(contents)' $TAG_NAME || echo "Release $TAG_NAME")
+          # 获取标签的注释信息（tag 的 -m 消息）
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' $TAG_NAME | tr -d '\n' || echo "Release $TAG_NAME")
+          
+          # 如果是轻量标签（没有注释），使用默认信息
+          if [ -z "$TAG_MESSAGE" ] || [ "$TAG_MESSAGE" = " " ]; then
+            TAG_MESSAGE="Release $TAG_NAME"
+          fi
+          
           echo "tag_message=$TAG_MESSAGE" >> $GITHUB_OUTPUT
           
           # 格式化 release 描述：v** : xxx
