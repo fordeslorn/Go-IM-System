@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
-	"io"
 )
 
 type Server struct {
@@ -43,18 +43,18 @@ func (s *Server) ListenMessager() {
 }
 
 func (s *Server) BroadCast(user *User, msg string) {
-	sendMsg := "[" + user.Addr + "]" + ":" + msg
+	sendMsg := "[" + user.Addr + "]\033[35m" + user.Name + "\033[0m:" + msg
 
 	s.MessageChan <- sendMsg
 }
 
 func (s *Server) Handler(conn net.Conn) {
 	// Handle the connection
-	fmt.Printf("\033[32mClient connection established successfully from:\033[0m [%s]%s\n", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
+	fmt.Printf("\033[32mClient connection established successfully from:\033[0m (%s)%s\n", conn.RemoteAddr().Network(), conn.RemoteAddr().String())
 
 	user := NewUser(conn, s)
 
-	user.Online() 
+	user.Online()
 
 	// Accept messages from the user
 	go func() {
@@ -63,7 +63,7 @@ func (s *Server) Handler(conn net.Conn) {
 			n, err := conn.Read(buf)
 			if n == 0 {
 				user.Offline()
-				fmt.Printf("[%s]%s \033[34mhas disconnected\033[0m\n", conn.RemoteAddr().Network(), user.Name)
+				fmt.Printf("[(%s)%s]\033[35m%s :\033[34mhas disconnected\033[0m\n", conn.RemoteAddr().Network(), user.Addr, user.Name)
 				return
 			}
 
