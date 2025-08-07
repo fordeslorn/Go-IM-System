@@ -2,11 +2,16 @@ package main
 
 import (
 	"IM-System/internal/client"
+	"flag"
 	"fmt"
 )
 
 func main() {
-	client := client.NewClient("127.0.0.1", 8888)
+	// Command line parameter parsing
+	flag.Parse()
+	serverIp, serverPort := client.GetServerConfig()
+
+	client := client.NewClient(serverIp, serverPort)
 	if client == nil {
 		fmt.Println("\033[31m>>>>> Fail to connect server...\033[0m")
 		return
