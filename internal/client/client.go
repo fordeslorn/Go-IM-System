@@ -1,6 +1,7 @@
 package client
 
 import (
+	"flag"
 	"fmt"
 	"net"
 )
@@ -27,4 +28,16 @@ func NewClient(serverIp string, serverPort int) *Client {
 	client.conn = conn
 
 	return client
+}
+
+var serverIp string
+var serverPort int
+
+func GetServerConfig() (string, int) {
+	return serverIp, serverPort
+}
+
+func init() {
+	flag.StringVar(&serverIp, "ip", "127.0.0.1", "set server IP address(default 127.0.0.1)")
+	flag.IntVar(&serverPort, "port", 8888, "set server Port(default 8888)")
 }
