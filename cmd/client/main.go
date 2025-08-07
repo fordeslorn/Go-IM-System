@@ -17,8 +17,10 @@ func main() {
 		return
 	}
 
+	// start a goroutine to deal with server responses
+	go client.DealResponse()
+
 	fmt.Println("\033[32m>>>>> Connect server successfully\033[0m")
 
-	// Block main goroutine to keep the client running
-	fmt.Scanln()
+	client.Run()
 }
